@@ -285,6 +285,9 @@ def add_pet_type():
         # Store in MongoDB
         pet_types_collection.insert_one(pet_type_obj)
 
+        # Remove MongoDB's _id field before returning
+        pet_type_obj.pop('_id', None)
+
         print(f"Created pet-type in Store {STORE_ID}: {pet_type_obj}")
         return jsonify(pet_type_obj), 201
 
@@ -457,6 +460,9 @@ def add_pet(pet_type_id):
             if not picture_filename:
                 # Image download failed, but we continue with "NA"
                 picture_filename = "NA"
+
+        if birthdate == None:
+            birthdate = "NA"
 
         # Create pet object
         pet_obj = {
@@ -677,27 +683,38 @@ def delete_pet(pet_type_id, pet_name):
     """Delete a specific pet"""
     print(f"DELETE /pet-types/{pet_type_id}/pets/{pet_name}")
     try:
-        # Check if pet-type exists
-        if pet_type_id not in PetTypes:
+        # Check if pet-type exists in MongoDB
+        pet_type = pet_types_collection.find_one({"id": pet_type_id}, {'_id': 0})
+
+        if not pet_type:
             return jsonify({"error": "Not found"}), 404
 
-        # Check if pet exists for this pet-type
-        if pet_type_id not in Pets or pet_name not in Pets[pet_type_id]:
+        # Find pet in MongoDB
+        pet = pets_collection.find_one(
+            {"pet_type_id": pet_type_id, "name": pet_name},
+            {'_id': 0}
+        )
+
+        if not pet:
             return jsonify({"error": "Not found"}), 404
 
-        # Get the pet object to delete its image
-        pet_obj = Pets[pet_type_id][pet_name]
-        picture = pet_obj.get('picture')
+        # Get the pet's picture filename
+        picture = pet.get('picture')
 
         # Delete the pet's image file if it exists
         if picture and picture != "NA":
             delete_image_file(picture)
 
-        # Remove pet from Pets dictionary
-        del Pets[pet_type_id][pet_name]
+        # Remove pet from MongoDB pets collection
+        pets_collection.delete_one(
+            {"pet_type_id": pet_type_id, "name": pet_name}
+        )
 
         # Remove pet name from the pet-type's pets array
-        PetTypes[pet_type_id]['pets'].remove(pet_name)
+        pet_types_collection.update_one(
+            {"id": pet_type_id},
+            {"$pull": {"pets": pet_name}}
+        )
 
         print(f"Deleted pet {pet_name} from pet-type {pet_type_id}")
         return '', 204
@@ -740,4 +757,4 @@ def get_picture(file_name):
 if __name__ == '__main__':
     print("Starting Pet Store API server...")
     print(f"Ninja API Key configured: {'Yes' if NINJA_API_KEY else 'No'}")
-    app.run(host='0.0.0.0', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=8000, debug=True)
