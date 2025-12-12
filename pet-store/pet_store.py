@@ -776,6 +776,12 @@ def get_picture(file_name):
         print(f"Exception in get_picture: {str(e)}")
         return jsonify({"server error": str(e)}), 500
 
+@app.route('/kill', methods=['GET'])
+def kill_container():
+    """Kill the container for testing Docker Compose restart functionality"""
+    print("KILL endpoint called - terminating container")
+    os._exit(1)
+
 if __name__ == '__main__':
     print("Starting Pet Store API server...")
     print(f"Ninja API Key configured: {'Yes' if NINJA_API_KEY else 'No'}")
