@@ -97,7 +97,7 @@ def select_pet(pet_type_id, store=None, pet_name=None):
             if response.status_code == 200:
                 pets = response.json()
                 if pets:
-                    return random.choice(pets), 2
+                    return random.choice(pets), try_store
         except Exception as e:
             print(f"Error getting pets from store {try_store}: {e}")
             continue
