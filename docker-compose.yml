@@ -93,6 +93,24 @@ services:
       - pet-store2
     restart: always
 
+  pet-order2:
+    build: ./pet-order
+    container_name: pet-order1
+    ports:
+      - "5003:8080"
+    expose:
+      - 8080
+    environment:
+      - OWNER_PASSWORD=LovesPetsL2M3n4
+      - MONGO_URI=mongodb://mongodb-transactions:27017/pet_store
+    networks:
+      - petstore-network
+    depends_on:
+      - mongodb-transactions
+      - pet-store1
+      - pet-store2
+    restart: always
+
 volumes:
   pet-images-store1:
   pet-images-store2:
