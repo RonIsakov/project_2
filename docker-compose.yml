@@ -7,6 +7,8 @@ services:
     container_name: mongodb-stores
     ports:
       - "27018:27017"
+    expose:
+      - 27017
     networks:
       - petstore-network
     restart: always
@@ -17,6 +19,8 @@ services:
     container_name: mongodb-transactions
     ports:
       - "27019:27017"
+    expose:
+      - 27017
     networks:
       - petstore-network
     restart: always
@@ -27,6 +31,8 @@ services:
     container_name: pet-store1
     ports:
       - "5001:8000"
+    expose:
+      - 8000
     environment:
       - MONGO_URI=mongodb://mongodb-stores:27017/pet_store
       - STORE_ID=1
@@ -45,10 +51,12 @@ services:
     container_name: pet-store2
     ports:
       - "5002:8000"
+    expose:
+      - 8000
     environment:
       - MONGO_URI=mongodb://mongodb-stores:27017/pet_store
       - STORE_ID=2
-      - OWNER_PASSWORD=LovesPetsL2M3n4   
+      - OWNER_PASSWORD=LovesPetsL2M3n4
     volumes:
       - pet-images-store2:/app/pictures
     networks:
@@ -63,6 +71,8 @@ services:
     container_name: pet-order1
     ports:
       - "5003:8080"
+    expose:
+      - 8080
     environment:
       - OWNER_PASSWORD=LovesPetsL2M3n4
       - MONGO_URI=mongodb://mongodb-transactions:27017/pet_store
