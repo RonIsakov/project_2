@@ -50,12 +50,29 @@ def find_pet_type_id(pet_type_name):
                 # Search for matching pet-type (case-insensitive)
                 for pet_type in pet_types:
                     if pet_type['type'].lower() == pet_type_name.lower():
-                        return pet_type['id']
+                        return pet_type['id'] , store
         except Exception as e:
             print(f"Error querying store {store}: {e}")
             continue
 
     return None
+
+def find_pet_type_id_in_store(pet_type_name, store):
+    """Find pet-type ID by name from a specific pet-store"""
+    try:
+        url = f"{PET_STORE_URLS[store]}/pet-types"
+        response = requests.get(url, timeout=5)
+
+        if response.status_code == 200:
+            pet_types = response.json()
+            # Search for matching pet-type (case-insensitive)
+            for pet_type in pet_types:
+                if pet_type['type'].lower() == pet_type_name.lower():
+                    return pet_type['id'], store
+    except Exception as e:
+        print(f"Error querying store {store}: {e}")
+
+    return None, None
 
 def select_pet(pet_type_id, store=None, pet_name=None):
     """Select a pet based on request parameters"""
@@ -125,15 +142,36 @@ def create_purchase():
         store = data.get('store', None)  # Optional
         pet_name = data.get('pet-name', None)  # Optional
 
-        # Find pet-type ID from pet-store
-        pet_type_id = find_pet_type_id(pet_type_name)
-        if not pet_type_id:
-            return jsonify({"error": "No pet of this type is available"}), 400
+        # Handle store-specific vs. cross-store search
+        if store:
+            # Store specified - search only that store
+            pet_type_id, selected_store = find_pet_type_id_in_store(pet_type_name, store)
+            if not pet_type_id:
+                return jsonify({"error": "No pet of this type is available"}), 400
 
-        # Select and get pet based on request
-        selected_pet, selected_store = select_pet(pet_type_id, store, pet_name)
-        if not selected_pet:
-            return jsonify({"error": "No pet of this type is available"}), 400
+            selected_pet, selected_store = select_pet(pet_type_id, store, pet_name)
+            if not selected_pet:
+                return jsonify({"error": "No pet of this type is available"}), 400
+        else:
+            # No store specified - try both stores
+            selected_pet = None
+            selected_store = None
+            pet_type_id = None
+
+            for try_store in [1, 2]:
+                # Get pet-type-id specific to this store
+                temp_pet_type_id, _ = find_pet_type_id_in_store(pet_type_name, try_store)
+                if temp_pet_type_id:
+                    # Try to select a pet from this store using this store's pet-type-id
+                    temp_pet, temp_store = select_pet(temp_pet_type_id, try_store, pet_name)
+                    if temp_pet:
+                        selected_pet = temp_pet
+                        selected_store = temp_store
+                        pet_type_id = temp_pet_type_id
+                        break
+
+            if not selected_pet:
+                return jsonify({"error": "No pet of this type is available"}), 400
 
         selected_pet_name = selected_pet['name']
 
