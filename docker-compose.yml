@@ -99,8 +99,6 @@ services:
   pet-order2:
     build: ./pet-order
     container_name: pet-order2
-    ports:
-      - "5004:8080"
     expose:
       - 8080
     environment:
